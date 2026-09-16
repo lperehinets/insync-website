@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//INSYNC Running Club//Events//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:insync-20260918-5k-afters@insyncrunning
+DTSTAMP:20260916T120000Z
+DTSTART:20260919T003000Z
+SUMMARY:INSYNC — 5K & Afters
+LOCATION:Fountain next to Strada\, Berkeley\, CA
+DESCRIPTION:All paces welcome. Meet next to Strada. 5K and DJ after.\nDetails: https://partiful.com/e/DZgYBfJEloemhum8B9Zk
+URL:https://partiful.com/e/DZgYBfJEloemhum8B9Zk
+END:VEVENT
+END:VCALENDAR

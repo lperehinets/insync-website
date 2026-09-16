@@ -1,9 +1,21 @@
 # INSYNC Running Club
 
-Minimal scroll site for [INSYNC](https://www.instagram.com/insyncrunning) — Berkeley run club.
+A lightweight, responsive club website. Open `index.html` or serve the folder with any static web server. No build process, package installation, or external JavaScript dependencies.
 
-Open `index.html` or serve the folder:
+## Pages and interactions
 
-```bash
-python3 -m http.server 5173
-```
+- Static chrome hero with the INSYNC brand mark; no runner animation.
+- Club homepage, full navigation menu, upcoming/past schedule, routes section, sign-up links, FAQ, and `partners.html`.
+- Event tabs support arrow keys, Home, and End; menu closes on Escape and outside clicks.
+- September 18 moves to the past list after midnight Pacific on September 19. The RSVP becomes an event link and calendar download is hidden.
+- Calendar download records the known start time; no end time has been invented.
+
+## Content sources and updates
+
+September 18 event details and RSVP link came from the original project and supplied Instagram screenshots. The screenshots also supplied September 4, May 9, May 3, and April 25 archive entries, and past collaborators. Archive links point to the club profile because individual post links were not supplied.
+
+The original site calls the fountain Class of 1914, while the flyer calls it Class of 1915. The public copy therefore uses “fountain next to Strada.” Maps links locate Caffe Strada as a nearby reference. Confirm the fountain name before adding a formal address.
+
+No course map or direct partner contact email was supplied. Routes describe the confirmed meeting point and link to the event. Partner inquiries link to Instagram. Event signup uses the existing Partiful page; there is no pretend registration form or mailing-list backend.
+
+Update event content in `index.html`, calendar data in `assets/insync-september-18.ics`, and archive cutoff/counts in `main.js` when adding future events. Keep dates and archive metadata aligned. Assets are local and preserve the supplied club identity.
