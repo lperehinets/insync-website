@@ -19,7 +19,8 @@
     float logo(vec2 p){
         vec2 uv=p/3.0+.5;
         vec2 edge=max(abs(p)-1.48,0.);
-        float d=(texture2D(logoDistance,clamp(uv,.001,.999)).r*255.-128.)/2.*3./256.;
+        vec2 encodedDistance=texture2D(logoDistance,clamp(uv,.001,.999)).rg;
+        float d=((encodedDistance.r*65280.+encodedDistance.g*255.)/65535.-.5)*4.;
         return d+length(edge);
     }
     float shape(vec3 p){
@@ -33,10 +34,10 @@
         p.z+=sin(p.x*4.+time*3.)*cos(p.y*4.-time*2.7)*motion*.075;
         float bulge=.06*cos(p.x*2.)*cos(p.y*2.);
         vec2 d=vec2(logo(p.xy),abs(p.z)-.17-bulge);
-        return (min(max(d.x,d.y),0.)+length(max(d,0.))-.065)*.58;
+        return (min(max(d.x,d.y),0.)+length(max(d,0.))-.085)*.58;
     }
     vec3 normalAt(vec3 p){
-        vec2 e=vec2(.025,0.);
+        vec2 e=vec2(.012,0.);
         return normalize(vec3(shape(p+e.xyy)-shape(p-e.xyy),shape(p+e.yxy)-shape(p-e.yxy),shape(p+e.yyx)-shape(p-e.yyx)));
     }
     float card(vec2 uv,vec2 pos,vec2 halfSize,float blur){
@@ -44,14 +45,11 @@
         return 1.-smoothstep(-blur,blur,max(d.x,d.y));
     }
     vec3 environment(vec3 d){
-        vec2 uv=d.xy/max(abs(d.z),.12);
-        float front=smoothstep(-.1,.1,d.z);
-        float key=card(uv,vec2(-.85,.95),vec2(.65,.32),.06);
-        float strip=card(uv,vec2(.9,.1),vec2(.075,.85),.025);
-        float edge=card(uv,vec2(-1.25,-.35),vec2(.07,.65),.02);
-        float rear=card(uv,vec2(.15,-.65),vec2(1.05,.32),.035);
-        float ceiling=pow(max(d.y,0.),6.);
-        return vec3(.012)+vec3(1.,.95,.98)*(front*(key*5.+strip*7.+edge*4.)+(1.-front)*(rear*3.8+key*1.8))+ceiling*.6;
+        // Broad studio lights keep reflections soft as the jelly deforms.
+        float key=pow(max(dot(d,normalize(vec3(-.55,.85,1.))),0.),6.);
+        float fill=pow(max(dot(d,normalize(vec3(.9,.1,.65))),0.),10.);
+        float rim=pow(max(dot(d,normalize(vec3(-.7,-.45,.5))),0.),8.);
+        return vec3(.025)+vec3(.94,.97,1.)*(key*1.8+fill*.75+rim*.5);
     }
     vec3 film(vec3 c){return clamp((c*(2.51*c+.03))/(c*(2.43*c+.59)+.14),0.,1.);}
     void main(){
@@ -62,7 +60,7 @@
         float t=2.6; bool hit=false;
         for(int i=0;i<90;i++){
             float d=shape(ro+rd*t);
-            if(d<.0025){hit=true;break;}if(t>6.4)break;t+=d;
+            if(d<.0015){hit=true;break;}if(t>6.4)break;t+=d;
         }
         vec3 col=vec3(0.);
         if(hit){
@@ -71,9 +69,9 @@
             vec3 light=normalize(vec3(-.6,.9,1.4));
             float diffuse=max(dot(n,light),0.);
             vec3 reflection=environment(reflect(rd,n));
-            float gloss=pow(max(dot(reflect(-light,n),-rd),0.),38.);
+            float gloss=pow(max(dot(reflect(-light,n),-rd),0.),22.);
             col=vec3(.016,.019,.023)*(0.7+diffuse*.5);
-            col+=reflection*(.10+fres*.34)+gloss*.38;
+            col+=reflection*(.13+fres*.24)+gloss*.12;
             col=pow(film(col),vec3(1./2.2));
         }
         gl_FragColor=vec4(col,hit?1.:0.);
@@ -125,7 +123,7 @@
         const rect=stage.getBoundingClientRect(), oldW=width, oldH=height;
         width=Math.max(1,rect.width); height=Math.max(1,rect.height);
         if(oldW>1) {body.x*=width/oldW;body.y*=height/oldH;} else {body.x=width/2;body.y=height/2;}
-        ratio=Math.min(devicePixelRatio||1,1.5);
+        ratio=Math.min(devicePixelRatio||1,2);
         canvas.width=Math.round(width*ratio); canvas.height=Math.round(height*ratio);
         gl.viewport(0,0,canvas.width,canvas.height); contain(); wake();
     }
@@ -214,6 +212,7 @@
     image.onload=()=>{
         gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+        gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL,gl.NONE);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
