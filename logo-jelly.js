@@ -4,6 +4,8 @@
     'use strict';
     const canvas = document.getElementById('logo-jelly');
     const stage = document.querySelector('.jelly-stage');
+    const grip = document.querySelector('.jelly-grab');
+    const homePanel = document.querySelector('.run-panel');
     if (!canvas || !stage) return;
     const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false, powerPreference: 'low-power' });
     if (!gl) return;
@@ -104,7 +106,8 @@
     const gel = {x:0,y:0,vx:0,vy:0};
     let width=1,height=1,ratio=1,ready=false,visible=true,lost=false,drag=null,raf=0,last=0,elapsed=0;
     const resetButton = document.getElementById('jelly-reset');
-    function scale() { return Math.min(width*.26, height*.29, 120); }
+    function scale() { const r=homePanel.getBoundingClientRect(); return Math.min(r.width*.26, r.height*.23, 120); }
+    function homePosition() { const r=homePanel.getBoundingClientRect(), s=stage.getBoundingClientRect(); return {x:r.left-s.left+r.width/2,y:r.top-s.top+r.height/2}; }
     function bounds() { const r=scale()*1.3; return {left:r,right:width-r,top:r,bottom:height-r}; }
     function contain() { const b=bounds(); body.x=clamp(body.x,b.left,b.right); body.y=clamp(body.y,b.top,b.bottom); }
     function active() { return ready && visible && !document.hidden && !lost; }
@@ -118,11 +121,13 @@
         gl.uniform1f(uniforms.motion,reduced.matches ? 0 : Math.min(.75,(Math.abs(gel.vx)+Math.abs(gel.vy))*.12));
         gl.uniform3f(uniforms.tint,.035,.04,.045);
         gl.drawArrays(gl.TRIANGLES,0,6);
+        grip.style.left=body.x+'px';grip.style.top=body.y+'px';
+        grip.style.width=grip.style.height=(scale()*2.25)+'px';
     }
     function resize() {
         const rect=stage.getBoundingClientRect(), oldW=width, oldH=height;
         width=Math.max(1,rect.width); height=Math.max(1,rect.height);
-        if(oldW>1) {body.x*=width/oldW;body.y*=height/oldH;} else {body.x=width/2;body.y=height/2;}
+        if(oldW>1) {body.x*=width/oldW;body.y*=height/oldH;} else {Object.assign(body,homePosition());}
         ratio=Math.min(devicePixelRatio||1,2);
         canvas.width=Math.round(width*ratio); canvas.height=Math.round(height*ratio);
         gl.viewport(0,0,canvas.width,canvas.height); contain(); wake();
@@ -159,14 +164,14 @@
         if(reduced.matches) {body.tiltY=body.tiltY<0?.25:-.25;render();return;}
         body.vx+=180;body.vy-=130;body.spin+=1.3;gel.vx+=2.8;gel.vy-=3;wake();
     }
-    canvas.addEventListener('pointerdown',event=>{
+    grip.addEventListener('pointerdown',event=>{
         if(event.button!==0||drag||!ready) return;
         const p=point(event);if(!hit(p))return;
         event.preventDefault();canvas.focus({preventScroll:true});
         drag={id:event.pointerId,...p,offsetX:p.x-body.x,offsetY:p.y-body.y,start:p,samples:[{...p,t:performance.now()}]};
-        canvas.setPointerCapture(event.pointerId);canvas.classList.add('dragging');wake();
+        grip.setPointerCapture(event.pointerId);grip.classList.add('dragging');wake();
     });
-    canvas.addEventListener('pointermove',event=>{
+    grip.addEventListener('pointermove',event=>{
         const p=point(event);canvas.classList.toggle('over-logo',hit(p));
         if(!drag||event.pointerId!==drag.id)return;
         const now=performance.now();drag.x=p.x;drag.y=p.y;
@@ -177,7 +182,7 @@
     });
     function release(event,throwBody=true) {
         if(!drag||(event&&event.pointerId!==drag.id))return;
-        const grab=drag;drag=null;canvas.classList.remove('dragging');
+        const grab=drag;drag=null;grip.classList.remove('dragging');
         const samples=grab.samples,first=samples[0],end=samples[samples.length-1];
         if(throwBody&&!reduced.matches) {
             const age=performance.now()-end.t;
@@ -192,13 +197,13 @@
             body.spin=clamp((grab.offsetX*body.vy-grab.offsetY*body.vx)/(scale()*scale())*.28,-3,3);
             gel.vx+=clamp(body.vx/260,-4,4);gel.vy-=clamp(body.vy/260,-4,4);
         } else {body.vx=body.vy=0;}
-        if(canvas.hasPointerCapture(grab.id))canvas.releasePointerCapture(grab.id);
+        if(grip.hasPointerCapture(grab.id))grip.releasePointerCapture(grab.id);
         if(throwBody&&Math.hypot(grab.x-grab.start.x,grab.y-grab.start.y)<5)jiggle();
         wake();
     }
-    canvas.addEventListener('pointerup',e=>release(e));
-    canvas.addEventListener('pointercancel',e=>release(e,false));
-    canvas.addEventListener('lostpointercapture',e=>release(e,false));
+    grip.addEventListener('pointerup',e=>release(e));
+    grip.addEventListener('pointercancel',e=>release(e,false));
+    grip.addEventListener('lostpointercapture',e=>release(e,false));
     canvas.addEventListener('keydown',event=>{
         if(![' ','Enter','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Escape'].includes(event.key))return;
         event.preventDefault();
@@ -210,7 +215,7 @@
         else {body.vx+=dx*240;body.vy+=dy*240;wake();}
     });
     function reset() {
-        release(null,false);Object.assign(body,{x:width/2,y:height/2,vx:0,vy:0,angle:0,spin:0,tiltX:.16,tiltY:-.25});
+        release(null,false);Object.assign(body,{...homePosition(),vx:0,vy:0,angle:0,spin:0,tiltX:.16,tiltY:-.25});
         Object.assign(gel,{x:0,y:0,vx:0,vy:0});wake();
     }
     resetButton.addEventListener('click',reset);

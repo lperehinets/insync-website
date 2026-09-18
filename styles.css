@@ -26,3 +26,23 @@
 .header .menu-button{white-space:nowrap;flex-shrink:0}
 
 .run-panel .panel-top,.run-panel .panel-bottom{justify-content:flex-end}
+
+/* One full-width hero playground, with links above the moving logo. */
+.header nav a,.header nav button,.site-menu a{ text-transform:uppercase; }
+.hero{position:relative;isolation:isolate}
+.hero>.jelly-stage{inset:0;z-index:2;pointer-events:none}
+#logo-jelly{pointer-events:none;touch-action:auto}
+.jelly-grab{position:absolute;display:none;pointer-events:auto;touch-action:none;cursor:grab;border-radius:30%;transform:translate(-50%,-50%)}
+.jelly-ready .jelly-grab{display:block}
+.jelly-grab.dragging{cursor:grabbing}
+.hero:has(.jelly-ready) .hero-emblem{display:none}
+.hero-copy,.hero-caption{position:relative;z-index:3;pointer-events:none}
+.hero-copy a,.hero-caption a{pointer-events:auto}
+.run-panel{z-index:1}
+.run-panel .panel-bottom{position:relative;z-index:4}
+.run-panel{overflow:visible}
+.track{border-radius:3px}
+.hero #jelly-reset{position:relative;z-index:4}
+@media(max-width:1050px) and (min-width:761px){.header .main-nav{gap:12px}.header{gap:24px}.header .main-nav a{font-size:10px}}
+
+.run-panel{z-index:auto}.run-panel .panel-top,.run-panel .panel-bottom{pointer-events:none}.run-panel #jelly-reset{pointer-events:auto}
