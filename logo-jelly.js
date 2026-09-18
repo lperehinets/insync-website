@@ -106,7 +106,6 @@
     const gel = {x:0,y:0,vx:0,vy:0};
     let width=1,height=1,ratio=1,ready=false,visible=true,lost=false,drag=null,raf=0,last=0,elapsed=0;
     const resetButton = document.getElementById('jelly-reset');
-    const hint = document.getElementById('jelly-hint');
     function scale() { return Math.min(width*.26, height*.29, 120); }
     function bounds() { const r=scale()*1.3; return {left:r,right:width-r,top:r,bottom:height-r}; }
     function contain() { const b=bounds(); body.x=clamp(body.x,b.left,b.right); body.y=clamp(body.y,b.top,b.bottom); }
@@ -210,7 +209,7 @@
     reduced.addEventListener('change',reset);
     document.addEventListener('visibilitychange',()=>{release(null,false);wake();});
     new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;if(!visible)release(null,false);wake();},{threshold:.01}).observe(stage);
-    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();lost=true;release(null,false);cancelAnimationFrame(raf);raf=0;stage.classList.remove('jelly-ready');resetButton.hidden=true;hint.textContent='GO AT YOUR OWN PACE.';});
+    canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();lost=true;release(null,false);cancelAnimationFrame(raf);raf=0;stage.classList.remove('jelly-ready');resetButton.hidden=true;});
     canvas.addEventListener('webglcontextrestored',()=>{ /* Keep the accessible static fallback until reload. */ });
     image.onload=()=>{
         gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);
@@ -218,7 +217,7 @@
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-        gl.uniform1i(uniforms.logoDistance,0);ready=true;stage.classList.add('jelly-ready');resetButton.hidden=false;hint.textContent='GRAB. TOSS. GET IN SYNC.';
+        gl.uniform1i(uniforms.logoDistance,0);ready=true;stage.classList.add('jelly-ready');resetButton.hidden=false;
         new ResizeObserver(resize).observe(stage);resize();
     };
     image.src='assets/logo-distance.png';
