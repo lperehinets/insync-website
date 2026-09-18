@@ -135,13 +135,13 @@
             if(drag) {
                 const dx=drag.x-drag.offsetX-body.x,dy=drag.y-drag.offsetY-body.y;
                 if(reduced.matches) {body.x+=dx;body.y+=dy;body.vx=body.vy=0;}
-                else {body.vx+=(dx*115-body.vx*16)*step;body.vy+=(dy*115-body.vy*16)*step;gx=clamp(dx/scale(),-.9,.9);gy=clamp(-dy/scale(),-.8,.8);}
-            } else {body.vx*=Math.exp(-1.8*step);body.vy*=Math.exp(-1.8*step);}
+                else {body.vx+=(dx*155-body.vx*10)*step;body.vy+=(dy*155-body.vy*10)*step;gx=clamp(dx/scale(),-.9,.9);gy=clamp(-dy/scale(),-.8,.8);}
+            } else {body.vx*=Math.exp(-.65*step);body.vy*=Math.exp(-.65*step);}
             body.x+=body.vx*step; body.y+=body.vy*step;
             const b=bounds();
-            if(body.x<b.left||body.x>b.right) {body.x=clamp(body.x,b.left,b.right);gel.vx+=clamp(body.vx/160,-4,4);body.vx*= -.65;}
-            if(body.y<b.top||body.y>b.bottom) {body.y=clamp(body.y,b.top,b.bottom);gel.vy+=clamp(body.vy/160,-4,4);body.vy*= -.65;}
-            gel.vx+=((gx-gel.x)*55-gel.vx*6)*step;gel.vy+=((gy-gel.y)*55-gel.vy*6)*step;
+            if(body.x<b.left||body.x>b.right) {body.x=clamp(body.x,b.left,b.right);gel.vx+=clamp(body.vx/160,-4,4);body.vx*= -.84;}
+            if(body.y<b.top||body.y>b.bottom) {body.y=clamp(body.y,b.top,b.bottom);gel.vy+=clamp(body.vy/160,-4,4);body.vy*= -.84;}
+            gel.vx+=((gx-gel.x)*48-gel.vx*3.8)*step;gel.vy+=((gy-gel.y)*48-gel.vy*3.8)*step;
             gel.x=clamp(gel.x+gel.vx*step,-1,1);gel.y=clamp(gel.y+gel.vy*step,-1,1);
             body.spin*=Math.exp(-2.4*step);body.angle+=body.spin*step;
             // Return to the readable brand orientation after each throw.
@@ -170,17 +170,27 @@
         const p=point(event);canvas.classList.toggle('over-logo',hit(p));
         if(!drag||event.pointerId!==drag.id)return;
         const now=performance.now();drag.x=p.x;drag.y=p.y;
-        drag.samples.push({...p,t:now});drag.samples=drag.samples.filter(s=>now-s.t<100);wake();
+        drag.samples.push({...p,t:now});
+        // Retain a sample before the window so sparse touch events still yield velocity.
+        while(drag.samples.length>2 && drag.samples[1].t<now-140) drag.samples.shift();
+        wake();
     });
     function release(event,throwBody=true) {
         if(!drag||(event&&event.pointerId!==drag.id))return;
         const grab=drag;drag=null;canvas.classList.remove('dragging');
         const samples=grab.samples,first=samples[0],end=samples[samples.length-1];
-        if(throwBody&&!reduced.matches&&samples.length>1&&performance.now()-end.t<110) {
-            const seconds=Math.max(.016,(end.t-first.t)/1000);
-            body.vx=clamp((end.x-first.x)/seconds,-1100,1100);body.vy=clamp((end.y-first.y)/seconds,-1100,1100);
-            body.spin=clamp((grab.offsetX*body.vy-grab.offsetY*body.vx)/(scale()*scale())*.2,-3,3);
-            gel.vx+=clamp(body.vx/350,-3,3);gel.vy-=clamp(body.vy/350,-3,3);
+        if(throwBody&&!reduced.matches) {
+            const age=performance.now()-end.t;
+            if(samples.length>1&&age<240) {
+                const seconds=Math.max(.016,(end.t-first.t)/1000);
+                const freshness=Math.exp(-Math.max(0,age-45)/130);
+                // Blend the hand's throw with the spring body's existing momentum.
+                body.vx=clamp(body.vx*.35+(end.x-first.x)/seconds*freshness*.85,-1400,1400);
+                body.vy=clamp(body.vy*.35+(end.y-first.y)/seconds*freshness*.85,-1400,1400);
+            }
+            // A release after a pause still retains any elastic recoil.
+            body.spin=clamp((grab.offsetX*body.vy-grab.offsetY*body.vx)/(scale()*scale())*.28,-3,3);
+            gel.vx+=clamp(body.vx/260,-4,4);gel.vy-=clamp(body.vy/260,-4,4);
         } else {body.vx=body.vy=0;}
         if(canvas.hasPointerCapture(grab.id))canvas.releasePointerCapture(grab.id);
         if(throwBody&&Math.hypot(grab.x-grab.start.x,grab.y-grab.start.y)<5)jiggle();
