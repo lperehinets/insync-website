@@ -5,7 +5,7 @@
     const canvas = document.getElementById('logo-jelly');
     const stage = document.querySelector('.jelly-stage');
     const grip = document.querySelector('.jelly-grab');
-    const homePanel = document.querySelector('.run-panel');
+    const homePanel = document.querySelector('.hero-space');
     if (!canvas || !stage) return;
     const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false, powerPreference: 'low-power' });
     if (!gl) return;
@@ -164,12 +164,13 @@
         if(reduced.matches) {body.tiltY=body.tiltY<0?.25:-.25;render();return;}
         body.vx+=180;body.vy-=130;body.spin+=1.3;gel.vx+=2.8;gel.vy-=3;wake();
     }
+    grip.addEventListener('dragstart',event=>event.preventDefault());
     grip.addEventListener('pointerdown',event=>{
         if(event.button!==0||drag||!ready) return;
         const p=point(event);if(!hit(p))return;
         event.preventDefault();canvas.focus({preventScroll:true});
         drag={id:event.pointerId,...p,offsetX:p.x-body.x,offsetY:p.y-body.y,start:p,samples:[{...p,t:performance.now()}]};
-        grip.setPointerCapture(event.pointerId);grip.classList.add('dragging');wake();
+        grip.setPointerCapture(event.pointerId);grip.classList.add('dragging');document.documentElement.classList.add('jelly-dragging');window.getSelection()?.removeAllRanges();wake();
     });
     grip.addEventListener('pointermove',event=>{
         const p=point(event);canvas.classList.toggle('over-logo',hit(p));
@@ -182,7 +183,7 @@
     });
     function release(event,throwBody=true) {
         if(!drag||(event&&event.pointerId!==drag.id))return;
-        const grab=drag;drag=null;grip.classList.remove('dragging');
+        const grab=drag;drag=null;grip.classList.remove('dragging');document.documentElement.classList.remove('jelly-dragging');
         const samples=grab.samples,first=samples[0],end=samples[samples.length-1];
         if(throwBody&&!reduced.matches) {
             const age=performance.now()-end.t;

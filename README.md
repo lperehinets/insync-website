@@ -4,7 +4,7 @@ A lightweight, responsive club website. Open `index.html` or serve the folder wi
 
 ## Pages and interactions
 
-- Interactive extruded INSYNC logo with glossy dark jelly shading, drag/toss physics, tap-to-squish, keyboard nudges, and reset. Reduced-motion users get direct manipulation without momentum. Rendering sleeps when settled or offscreen; a static logo remains if WebGL is unavailable.
+- Interactive extruded INSYNC logo with glossy dark jelly shading, drag/toss physics, tap-to-squish, keyboard nudges, and reset. Reduced-motion users get direct manipulation without momentum. Rendering sleeps when settled or offscreen; the hero stays usable if WebGL is unavailable.
 - Desktop navigation spans the header; compact screens retain the full dropdown menu.
 - Club homepage, full navigation menu, upcoming/past schedule, routes section, sign-up links, FAQ, and `partners.html`.
 - Event tabs support arrow keys, Home, and End; menu closes on Escape and outside clicks.
@@ -17,6 +17,6 @@ September 18 event details and RSVP link came from the original project and supp
 
 The original site calls the fountain Class of 1914, while the flyer calls it Class of 1915. The public copy therefore uses “fountain next to Strada.” Maps links locate Caffe Strada as a nearby reference. Confirm the fountain name before adding a formal address.
 
-No course map or direct partner contact email was supplied. Routes describe the confirmed meeting point and link to the event. Partner inquiries link to Instagram. Event signup uses the existing Partiful page; there is no pretend registration form or mailing-list backend.
+No course map was supplied. Routes describe the confirmed meeting point and link to the event. Partner inquiries open an email to lperehinets1@gmail.com. Event signup uses the existing Partiful page; there is no pretend registration form or mailing-list backend.
 
 Update event content in `index.html`, calendar data in `assets/insync-september-18.ics`, and archive cutoff/counts in `main.js` when adding future events. Keep dates and archive metadata aligned. Assets are local and preserve the supplied club identity.
