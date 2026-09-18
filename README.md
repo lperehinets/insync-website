@@ -4,7 +4,8 @@ A lightweight, responsive club website. Open `index.html` or serve the folder wi
 
 ## Pages and interactions
 
-- Static chrome hero with the INSYNC brand mark; no runner animation.
+- Interactive extruded INSYNC logo with glossy dark jelly shading, drag/toss physics, tap-to-squish, keyboard nudges, and reset. Reduced-motion users get direct manipulation without momentum. Rendering sleeps when settled or offscreen; a static logo remains if WebGL is unavailable.
+- Desktop navigation spans the header; compact screens retain the full dropdown menu.
 - Club homepage, full navigation menu, upcoming/past schedule, routes section, sign-up links, FAQ, and `partners.html`.
 - Event tabs support arrow keys, Home, and End; menu closes on Escape and outside clicks.
 - September 18 moves to the past list after midnight Pacific on September 19. The RSVP becomes an event link and calendar download is hidden.
