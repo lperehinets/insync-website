@@ -5,7 +5,7 @@ A lightweight, responsive club website. Open `index.html` or serve the folder wi
 ## Pages and interactions
 
 - Interactive extruded INSYNC logo with glossy dark jelly shading, drag/toss physics, tap-to-squish, keyboard nudges, and reset. Reduced-motion users get direct manipulation without momentum. Rendering sleeps when settled or offscreen; the hero stays usable if WebGL is unavailable.
-- Sticky chrome bead with Atlas-style particle text across the three club values: scroll moves the bead through points 01→03, then it points down into the run schedule. Honors `prefers-reduced-motion` with static type.
+- Sticky chrome bead with Atlas-style particle text across the three club values: scroll moves the bead gradually through points 01→03, then a short drop with ↓ points into the run schedule. Honors `prefers-reduced-motion` with static type.
 - Desktop navigation spans the header; compact screens retain the full dropdown menu.
 - Club homepage, full navigation menu, upcoming/past schedule, routes section, sign-up links, FAQ, and `partners.html`.
 - Event tabs support arrow keys, Home, and End; menu closes on Escape and outside clicks.

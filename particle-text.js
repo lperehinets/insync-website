@@ -482,9 +482,9 @@
       const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
       const progress = clamp((window.scrollY - start) / travel, 0, 1);
 
-      // Hold clear of the copy first, then sweep left→right, then drop.
-      const introEnd = 0.22;
-      const acrossEnd = 0.74;
+      // Hold clear of the copy, then a long gradual left→right sweep, then a short drop.
+      const introEnd = 0.14;
+      const acrossEnd = 0.86;
       const intro = clamp(progress / introEnd, 0, 1);
       const across = progress <= introEnd
         ? 0
@@ -498,7 +498,7 @@
       const stacked = window.matchMedia('(max-width: 650px)').matches;
       const cardRects = cards.map(card => card.getBoundingClientRect());
 
-      // Path anchors in stage-local coords: start clear of text, then each card, then exit down.
+      // Path anchors: start clear of text, then each card center (side-to-side), then nudge down.
       const points = [];
       if (stacked) {
         const first = cardRects[0];
@@ -514,7 +514,6 @@
         }
       } else {
         const first = cardRects[0];
-        const last = cardRects[cardRects.length - 1];
         const midY = first.top - stageRect.top + Math.min(first.height * 0.48, 72);
         points.push({
           x: first.left - stageRect.left - size * 1.25,
@@ -526,31 +525,24 @@
             y: r.top - stageRect.top + Math.min(r.height * 0.48, 72)
           });
         }
-        points.push({
-          x: last.left - stageRect.left + last.width + size * 0.15,
-          y: midY
-        });
       }
 
-      // During intro, stay on the first (clear) point. Then travel the rest side-to-side.
-      const travelPoints = points;
-      const span = travelPoints.length - 1;
+      const span = points.length - 1;
       const t = across * span;
       const i = Math.min(span - 1, Math.floor(t));
       const f = t - i;
-      const a = travelPoints[i];
-      const b = travelPoints[i + 1];
+      const a = points[i];
+      const b = points[i + 1];
       const x = a.x + (b.x - a.x) * f;
-      const y = a.y + (b.y - a.y) * f + down * Math.max(140, stageRect.height * 0.7 + 40);
+      // Short drop just under the last card — bead ↓ is the pointer, no extra runway gap.
+      const y = a.y + (b.y - a.y) * f + down * Math.max(56, size * 1.35);
 
       bead.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0)`;
       const inView = stageRect.bottom > 80 && stageRect.top < window.innerHeight - 40;
-      // Fade in while parked beside the copy; full presence once the sweep starts.
       bead.classList.toggle('bead-entry--in', inView && intro > 0.15);
       bead.classList.toggle('metal-bead--waiting', inView && across < 0.02 && down < 0.01);
-      bead.classList.toggle('metal-bead--down', down > 0.12);
-      runway.classList.toggle('is-pointing', down > 0.18);
-      // Keep particle wake off until the bead actually enters the type.
+      bead.classList.toggle('metal-bead--down', down > 0.2);
+      runway.classList.toggle('is-pointing', down > 0.25);
       bead.dataset.repulse = across > 0.04 || down > 0 ? '1' : '0';
     };
 
