@@ -476,115 +476,98 @@
     const cards = [...runway.querySelectorAll('.value-card')];
     if (!stage || cards.length < 2) return () => {};
 
-    let ticking = false;
+    let raf = 0;
+    let lastErr = '';
     const update = () => {
-      ticking = false;
-      // Scrub by how far the runway has moved through the viewport (sticky-pin progress).
-      const rect = runway.getBoundingClientRect();
-      const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
-      const progress = clamp((-rect.top) / travel, 0, 1);
+      try {
+        const rect = runway.getBoundingClientRect();
+        const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
+        const progress = clamp((-rect.top) / travel, 0, 1);
 
-      // Sweep under the copy (never through it), then settle under point 02 with ↓.
-      const introEnd = 0.06;
-      const acrossEnd = 0.78;
-      const across = progress <= introEnd
-        ? 0
-        : easeInOut(clamp((progress - introEnd) / (acrossEnd - introEnd), 0, 1));
-      const down = progress <= acrossEnd
-        ? 0
-        : easeInOut(clamp((progress - acrossEnd) / (1 - acrossEnd), 0, 1));
+        const stageRect = stage.getBoundingClientRect();
+        const stickyRect = sticky.getBoundingClientRect();
+        const size = bead.offsetWidth || 54;
 
-      const stageRect = stage.getBoundingClientRect();
-      const stickyRect = sticky.getBoundingClientRect();
-      const size = bead.offsetWidth || 54;
-      const stacked = window.matchMedia('(max-width: 650px)').matches ||
-        (cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left < 40);
-
-      // Anchor Y to the bottom of each card's body text so the bead stays clear of copy.
-      const underOf = (card) => {
-        const body = card.querySelector('.pt-body') || card.querySelector('.pt-text') || card;
-        const r = body.getBoundingClientRect();
-        return {
-          x: r.left - stageRect.left + r.width * 0.5,
-          y: r.bottom - stageRect.top + size * 0.95
-        };
-      };
-      const unders = cards.map(underOf);
-
-      const points = [];
-      if (stacked) {
-        points.push({
-          x: unders[0].x,
-          y: unders[0].y - size * 2.2
+        // Center X of each column; Y clearly below the full text block.
+        const anchors = cards.map((card) => {
+          const block = card.querySelector('.pt-text') || card.querySelector('.pt-host') || card;
+          const br = block.getBoundingClientRect();
+          const cr = card.getBoundingClientRect();
+          return {
+            x: cr.left - stageRect.left + cr.width * 0.5,
+            y: br.bottom - stageRect.top + size * 1.55
+          };
         });
-        points.push(...unders);
-      } else {
-        points.push({
-          x: unders[0].x - Math.min(48, cards[0].getBoundingClientRect().width * 0.2),
-          y: unders[0].y
-        });
-        points.push(...unders);
+
+        // 0–5%: wait left of 01
+        // 5–75%: sweep middle of 01 → 02 → 03 (below text)
+        // 75–100%: return to middle of 02 and show ↓
+        const y = anchors[0].y;
+        let x;
+        let showDown = false;
+
+        if (progress < 0.05) {
+          x = anchors[0].x - Math.min(56, cards[0].getBoundingClientRect().width * 0.25);
+        } else if (progress < 0.75) {
+          const u = easeInOut((progress - 0.05) / 0.7);
+          if (u < 0.5) {
+            const f = u / 0.5;
+            x = anchors[0].x + (anchors[1].x - anchors[0].x) * f;
+          } else {
+            const f = (u - 0.5) / 0.5;
+            x = anchors[1].x + (anchors[2].x - anchors[1].x) * f;
+          }
+        } else {
+          const d = easeInOut((progress - 0.75) / 0.25);
+          x = anchors[2].x + (anchors[1].x - anchors[2].x) * d;
+          showDown = d > 0.35;
+        }
+
+        // Keep Y under the text for whichever column we're nearest.
+        const nearest = anchors.reduce((best, a, i) => (
+          Math.abs(a.x - x) < Math.abs(anchors[best].x - x) ? i : best
+        ), 0);
+        const targetY = anchors[nearest].y + (showDown ? size * 0.2 : 0);
+
+        bead.style.transform = `translate3d(${x - size / 2}px, ${targetY - size / 2}px, 0)`;
+        bead.dataset.progress = progress.toFixed(3);
+        const inView = stickyRect.bottom > 60 && stickyRect.top < window.innerHeight - 40;
+        bead.classList.toggle('bead-entry--in', inView && progress >= 0 && progress < 1.05);
+        bead.classList.toggle('metal-bead--waiting', inView && progress < 0.05);
+        bead.classList.toggle('metal-bead--down', showDown);
+        bead.dataset.repulse = '0';
+      } catch (err) {
+        lastErr = String(err && err.message || err);
+        bead.dataset.beadError = lastErr;
       }
-
-      const span = Math.max(1, points.length - 1);
-      const t = across * span;
-      const i = Math.min(span - 1, Math.floor(t));
-      const f = t - i;
-      const a = points[i];
-      const b = points[i + 1] || a;
-      let x = a.x + (b.x - a.x) * f;
-      let y = a.y + (b.y - a.y) * f;
-
-      // Finish centered under point 02.
-      if (down > 0) {
-        const mid = unders[1] || unders[0];
-        const targetX = mid.x;
-        const targetY = mid.y + size * 0.25;
-        x = x + (targetX - x) * down;
-        y = y + (targetY - y) * down;
-      }
-
-      bead.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0)`;
-      const inView = stickyRect.bottom > 60 && stickyRect.top < window.innerHeight - 40;
-      bead.classList.toggle('bead-entry--in', inView && progress >= 0 && progress < 1.05);
-      bead.classList.toggle('metal-bead--waiting', inView && across < 0.01 && down < 0.01);
-      bead.classList.toggle('metal-bead--down', down > 0.12);
-      // Path stays under the text — no particle wake on the copy.
-      bead.dataset.repulse = '0';
     };
 
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(update);
+    const tick = () => {
+      update();
+      raf = requestAnimationFrame(tick);
     };
-
+    raf = requestAnimationFrame(tick);
+    const onScroll = () => update();
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    window.addEventListener('resize', update);
+    // Backup while rAF may be throttled in background automation tabs.
+    const interval = window.setInterval(update, 50);
     update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      cancelAnimationFrame(raf);
+      window.clearInterval(interval);
+      window.removeEventListener('scroll', onScroll, { capture: true });
+      window.removeEventListener('resize', update);
     };
   }
 
   function boot() {
     const bead = document.getElementById('metal-bead');
     const runway = document.getElementById('values-runway');
-    const hosts = [...document.querySelectorAll('[data-particle-text]')];
-    if (!bead || !hosts.length) return;
+    if (!bead || !runway) return;
 
-    const instances = hosts.map(host => {
-      const pt = new ParticleText(host, { repulsor: bead });
-      pt.init();
-      return pt;
-    });
-
-    const stopPath = runway ? bootBeadPath(bead, runway) : () => {};
-    window.addEventListener('pagehide', () => {
-      stopPath();
-      instances.forEach(pt => pt.destroy());
-    }, { once: true });
+    // Bead travels under the copy (not through it), so keep real text visible.
+    bootBeadPath(bead, runway);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
