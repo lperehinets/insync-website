@@ -477,7 +477,6 @@
     if (!stage || cards.length < 2) return () => {};
 
     let raf = 0;
-    let lastErr = '';
     const update = () => {
       try {
         const rect = runway.getBoundingClientRect();
@@ -487,58 +486,64 @@
         const stageRect = stage.getBoundingClientRect();
         const stickyRect = sticky.getBoundingClientRect();
         const size = bead.offsetWidth || 54;
+        const stacked = window.matchMedia('(max-width: 650px)').matches ||
+          (cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left < 40);
 
-        // Center X of each column; Y clearly below the full text block.
+        // Through the vertical middle of each text block, then finish below point 02.
         const anchors = cards.map((card) => {
           const block = card.querySelector('.pt-text') || card.querySelector('.pt-host') || card;
           const br = block.getBoundingClientRect();
           const cr = card.getBoundingClientRect();
+          const x = stacked
+            ? cr.left - stageRect.left + Math.min(cr.width * 0.42, 160)
+            : cr.left - stageRect.left + cr.width * 0.5;
           return {
-            x: cr.left - stageRect.left + cr.width * 0.5,
-            y: br.bottom - stageRect.top + size * 1.55
+            x,
+            throughY: br.top - stageRect.top + br.height * 0.52,
+            belowY: br.bottom - stageRect.top + size * 1.35
           };
         });
 
-        // 0–5%: wait left of 01
-        // 5–75%: sweep middle of 01 → 02 → 03 (below text)
-        // 75–100%: return to middle of 02 and show ↓
-        const y = anchors[0].y;
+        // 0–6%: wait left of 01 on the text midline
+        // 6–72%: flow through the middle of 01 → 02 → 03
+        // 72–100%: drop under point 02 with ↓
         let x;
+        let y;
         let showDown = false;
+        let repulse = false;
 
-        if (progress < 0.05) {
-          x = anchors[0].x - Math.min(56, cards[0].getBoundingClientRect().width * 0.25);
-        } else if (progress < 0.75) {
-          const u = easeInOut((progress - 0.05) / 0.7);
+        if (progress < 0.06) {
+          x = anchors[0].x - (stacked ? 0 : Math.min(56, cards[0].getBoundingClientRect().width * 0.22));
+          y = anchors[0].throughY;
+        } else if (progress < 0.72) {
+          const u = easeInOut((progress - 0.06) / 0.66);
+          repulse = true;
           if (u < 0.5) {
             const f = u / 0.5;
             x = anchors[0].x + (anchors[1].x - anchors[0].x) * f;
+            y = anchors[0].throughY + (anchors[1].throughY - anchors[0].throughY) * f;
           } else {
             const f = (u - 0.5) / 0.5;
             x = anchors[1].x + (anchors[2].x - anchors[1].x) * f;
+            y = anchors[1].throughY + (anchors[2].throughY - anchors[1].throughY) * f;
           }
         } else {
-          const d = easeInOut((progress - 0.75) / 0.25);
+          const d = easeInOut((progress - 0.72) / 0.28);
           x = anchors[2].x + (anchors[1].x - anchors[2].x) * d;
-          showDown = d > 0.35;
+          y = anchors[2].throughY + (anchors[1].belowY - anchors[2].throughY) * d;
+          showDown = d > 0.4;
+          repulse = d < 0.55;
         }
 
-        // Keep Y under the text for whichever column we're nearest.
-        const nearest = anchors.reduce((best, a, i) => (
-          Math.abs(a.x - x) < Math.abs(anchors[best].x - x) ? i : best
-        ), 0);
-        const targetY = anchors[nearest].y + (showDown ? size * 0.2 : 0);
-
-        bead.style.transform = `translate3d(${x - size / 2}px, ${targetY - size / 2}px, 0)`;
+        bead.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0)`;
         bead.dataset.progress = progress.toFixed(3);
         const inView = stickyRect.bottom > 60 && stickyRect.top < window.innerHeight - 40;
         bead.classList.toggle('bead-entry--in', inView && progress >= 0 && progress < 1.05);
-        bead.classList.toggle('metal-bead--waiting', inView && progress < 0.05);
+        bead.classList.toggle('metal-bead--waiting', inView && progress < 0.06);
         bead.classList.toggle('metal-bead--down', showDown);
-        bead.dataset.repulse = '0';
+        bead.dataset.repulse = repulse ? '1' : '0';
       } catch (err) {
-        lastErr = String(err && err.message || err);
-        bead.dataset.beadError = lastErr;
+        bead.dataset.beadError = String(err && err.message || err);
       }
     };
 
@@ -550,7 +555,6 @@
     const onScroll = () => update();
     window.addEventListener('scroll', onScroll, { passive: true, capture: true });
     window.addEventListener('resize', update);
-    // Backup while rAF may be throttled in background automation tabs.
     const interval = window.setInterval(update, 50);
     update();
     return () => {
@@ -564,10 +568,20 @@
   function boot() {
     const bead = document.getElementById('metal-bead');
     const runway = document.getElementById('values-runway');
-    if (!bead || !runway) return;
+    const hosts = [...document.querySelectorAll('[data-particle-text]')];
+    if (!bead || !runway || !hosts.length) return;
 
-    // Bead travels under the copy (not through it), so keep real text visible.
-    bootBeadPath(bead, runway);
+    const instances = hosts.map((host) => {
+      const pt = new ParticleText(host, { repulsor: bead });
+      pt.init();
+      return pt;
+    });
+
+    const stopPath = bootBeadPath(bead, runway);
+    window.addEventListener('pagehide', () => {
+      instances.forEach((pt) => pt.destroy());
+    }, { once: true });
+    window.addEventListener('beforeunload', stopPath, { once: true });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
