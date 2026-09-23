@@ -326,6 +326,7 @@
 
     forces() {
       const list = [];
+      if (this.repulsor?.dataset.repulse === '0') return list;
       const canvasRect = this.canvas.getBoundingClientRect();
       const bead = this.repulsor?.getBoundingClientRect();
       if (
@@ -480,34 +481,77 @@
       const start = runway.offsetTop;
       const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
       const progress = clamp((window.scrollY - start) / travel, 0, 1);
-      const acrossEnd = 0.68;
-      const across = easeInOut(clamp(progress / acrossEnd, 0, 1));
-      const down = easeInOut(clamp((progress - acrossEnd) / (1 - acrossEnd), 0, 1));
+
+      // Hold clear of the copy first, then sweep left→right, then drop.
+      const introEnd = 0.22;
+      const acrossEnd = 0.74;
+      const intro = clamp(progress / introEnd, 0, 1);
+      const across = progress <= introEnd
+        ? 0
+        : easeInOut(clamp((progress - introEnd) / (acrossEnd - introEnd), 0, 1));
+      const down = progress <= acrossEnd
+        ? 0
+        : easeInOut(clamp((progress - acrossEnd) / (1 - acrossEnd), 0, 1));
 
       const stageRect = stage.getBoundingClientRect();
-      const points = cards.map(card => {
-        const r = card.getBoundingClientRect();
-        return {
-          x: r.left - stageRect.left + r.width * 0.42,
-          y: r.top - stageRect.top + Math.min(r.height * 0.48, 72)
-        };
-      });
+      const size = bead.offsetWidth || 54;
+      const stacked = window.matchMedia('(max-width: 650px)').matches;
+      const cardRects = cards.map(card => card.getBoundingClientRect());
 
-      const span = points.length - 1;
+      // Path anchors in stage-local coords: start clear of text, then each card, then exit down.
+      const points = [];
+      if (stacked) {
+        const first = cardRects[0];
+        points.push({
+          x: first.left - stageRect.left + first.width * 0.42,
+          y: first.top - stageRect.top - size * 1.15
+        });
+        for (const r of cardRects) {
+          points.push({
+            x: r.left - stageRect.left + r.width * 0.42,
+            y: r.top - stageRect.top + Math.min(r.height * 0.45, 68)
+          });
+        }
+      } else {
+        const first = cardRects[0];
+        const last = cardRects[cardRects.length - 1];
+        const midY = first.top - stageRect.top + Math.min(first.height * 0.48, 72);
+        points.push({
+          x: first.left - stageRect.left - size * 1.25,
+          y: midY
+        });
+        for (const r of cardRects) {
+          points.push({
+            x: r.left - stageRect.left + r.width * 0.5,
+            y: r.top - stageRect.top + Math.min(r.height * 0.48, 72)
+          });
+        }
+        points.push({
+          x: last.left - stageRect.left + last.width + size * 0.15,
+          y: midY
+        });
+      }
+
+      // During intro, stay on the first (clear) point. Then travel the rest side-to-side.
+      const travelPoints = points;
+      const span = travelPoints.length - 1;
       const t = across * span;
       const i = Math.min(span - 1, Math.floor(t));
       const f = t - i;
-      const a = points[i];
-      const b = points[i + 1];
+      const a = travelPoints[i];
+      const b = travelPoints[i + 1];
       const x = a.x + (b.x - a.x) * f;
       const y = a.y + (b.y - a.y) * f + down * Math.max(140, stageRect.height * 0.7 + 40);
 
-      const size = bead.offsetWidth || 54;
       bead.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0)`;
       const inView = stageRect.bottom > 80 && stageRect.top < window.innerHeight - 40;
-      bead.classList.toggle('bead-entry--in', inView && progress >= 0);
+      // Fade in while parked beside the copy; full presence once the sweep starts.
+      bead.classList.toggle('bead-entry--in', inView && intro > 0.15);
+      bead.classList.toggle('metal-bead--waiting', inView && across < 0.02 && down < 0.01);
       bead.classList.toggle('metal-bead--down', down > 0.12);
       runway.classList.toggle('is-pointing', down > 0.18);
+      // Keep particle wake off until the bead actually enters the type.
+      bead.dataset.repulse = across > 0.04 || down > 0 ? '1' : '0';
     };
 
     const onScroll = () => {
