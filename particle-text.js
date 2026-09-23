@@ -472,19 +472,21 @@
 
   function bootBeadPath(bead, runway) {
     const stage = runway.querySelector('.values-bead');
+    const sticky = runway.querySelector('.values-sticky');
     const cards = [...runway.querySelectorAll('.value-card')];
     if (!stage || cards.length < 2) return () => {};
 
     let ticking = false;
     const update = () => {
       ticking = false;
-      const start = runway.offsetTop;
+      // Scrub by how far the runway has moved through the viewport (sticky-pin progress).
+      const rect = runway.getBoundingClientRect();
       const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
-      const progress = clamp((window.scrollY - start) / travel, 0, 1);
+      const progress = clamp((-rect.top) / travel, 0, 1);
 
-      // Hold clear of the copy, then a long gradual left→right sweep, then a short drop.
-      const introEnd = 0.14;
-      const acrossEnd = 0.86;
+      // Long side-to-side first; short downward point at the end.
+      const introEnd = 0.08;
+      const acrossEnd = 0.88;
       const intro = clamp(progress / introEnd, 0, 1);
       const across = progress <= introEnd
         ? 0
@@ -494,56 +496,63 @@
         : easeInOut(clamp((progress - acrossEnd) / (1 - acrossEnd), 0, 1));
 
       const stageRect = stage.getBoundingClientRect();
+      const stickyRect = sticky.getBoundingClientRect();
       const size = bead.offsetWidth || 54;
-      const stacked = window.matchMedia('(max-width: 650px)').matches;
+      const stacked = window.matchMedia('(max-width: 650px)').matches ||
+        (cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left < 40);
       const cardRects = cards.map(card => card.getBoundingClientRect());
 
-      // Path anchors: start clear of text, then each card center (side-to-side), then nudge down.
+      // Explicit horizontal waypoints through each column (or top→bottom when stacked).
       const points = [];
       if (stacked) {
-        const first = cardRects[0];
         points.push({
-          x: first.left - stageRect.left + first.width * 0.42,
-          y: first.top - stageRect.top - size * 1.15
+          x: cardRects[0].left - stageRect.left + cardRects[0].width * 0.42,
+          y: cardRects[0].top - stageRect.top - size * 1.2
         });
         for (const r of cardRects) {
           points.push({
             x: r.left - stageRect.left + r.width * 0.42,
-            y: r.top - stageRect.top + Math.min(r.height * 0.45, 68)
+            y: r.top - stageRect.top + Math.min(r.height * 0.42, 64)
           });
         }
       } else {
-        const first = cardRects[0];
-        const midY = first.top - stageRect.top + Math.min(first.height * 0.48, 72);
+        const midY = cardRects[0].top - stageRect.top + Math.min(cardRects[0].height * 0.5, 70);
+        // Start just left of column 01 copy.
         points.push({
-          x: first.left - stageRect.left - size * 1.25,
+          x: cardRects[0].left - stageRect.left + Math.min(36, cardRects[0].width * 0.08),
           y: midY
         });
+        // Center of each column — this is the side-to-side path.
         for (const r of cardRects) {
           points.push({
             x: r.left - stageRect.left + r.width * 0.5,
-            y: r.top - stageRect.top + Math.min(r.height * 0.48, 72)
+            y: r.top - stageRect.top + Math.min(r.height * 0.5, 70)
           });
         }
       }
 
-      const span = points.length - 1;
+      const span = Math.max(1, points.length - 1);
       const t = across * span;
       const i = Math.min(span - 1, Math.floor(t));
       const f = t - i;
       const a = points[i];
-      const b = points[i + 1];
-      const x = a.x + (b.x - a.x) * f;
-      // Short drop just under the last card — bead ↓ is the pointer, no extra runway gap.
-      const y = a.y + (b.y - a.y) * f + down * Math.max(56, size * 1.35);
+      const b = points[i + 1] || a;
+      let x = a.x + (b.x - a.x) * f;
+      let y = a.y + (b.y - a.y) * f;
+
+      // Drop toward the bottom of the sticky panel to cue the calendar below.
+      if (down > 0) {
+        const targetY = stickyRect.bottom - stageRect.top - size * 1.6;
+        y = y + (Math.max(y + 48, targetY) - y) * down;
+        x = points[points.length - 1].x;
+      }
 
       bead.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0)`;
-      const inView = stageRect.bottom > 80 && stageRect.top < window.innerHeight - 40;
-      bead.classList.toggle('bead-entry--in', inView && intro > 0.15);
-      bead.classList.toggle('metal-bead--waiting', inView && across < 0.02 && down < 0.01);
-      bead.classList.toggle('metal-bead--down', down > 0.2);
-      runway.classList.toggle('is-pointing', down > 0.25);
-      bead.dataset.repulse = across > 0.04 || down > 0 ? '1' : '0';
+      const inView = stickyRect.bottom > 60 && stickyRect.top < window.innerHeight - 40;
+      bead.classList.toggle('bead-entry--in', inView && progress >= 0 && progress < 1.05);
+      bead.classList.toggle('metal-bead--waiting', inView && across < 0.01 && down < 0.01);
+      bead.classList.toggle('metal-bead--down', down > 0.15);
+      bead.dataset.repulse = across > 0.02 || down > 0 ? '1' : '0';
     };
 
     const onScroll = () => {
