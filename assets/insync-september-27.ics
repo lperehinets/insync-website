@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//INSYNC Running Club//Events//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:insync-20260927-5k-afters-isab@insyncrunning
+DTSTAMP:20260923T060000Z
+DTSTART:20260927T173000Z
+SUMMARY:INSYNC × ISAB — 5K & DJ Afters
+LOCATION:Strada Fountain\, Berkeley\, CA
+DESCRIPTION:All paces welcome. INSYNC × International Students Association at Berkeley. 5K and DJ after.\nDetails: https://partiful.com/e/kMO2O52GMtITjHEYvllk
+URL:https://partiful.com/e/kMO2O52GMtITjHEYvllk
+END:VEVENT
+END:VCALENDAR

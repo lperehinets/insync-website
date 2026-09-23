@@ -22,13 +22,13 @@ tabs.forEach((tab, index) => {
 });
 // Archive after the event's local calendar day; no unconfirmed end time is implied.
 function updateEventStatus() {
-  if (Date.now() < Date.parse('2026-09-19T00:00:00-07:00')) return;
+  if (Date.now() < Date.parse('2026-09-28T00:00:00-07:00')) return;
   document.getElementById('past').append(document.getElementById('featured-event'));
 
   document.getElementById('upcoming-empty').hidden = false;
   document.getElementById('upcoming-count').textContent = '00';
-  document.getElementById('past-count').textContent = '05';
-  document.getElementById('event-status').textContent = 'PAST EVENT / SEPTEMBER 18, 2026';
+  document.getElementById('past-count').textContent = '06';
+  document.getElementById('event-status').textContent = 'PAST EVENT / SEPTEMBER 27, 2026';
   document.getElementById('event-rsvp').innerHTML = 'View event <span aria-hidden="true">↗</span>';
   document.getElementById('calendar-link').hidden = true;
 }
