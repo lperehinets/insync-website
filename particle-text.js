@@ -484,9 +484,9 @@
       const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
       const progress = clamp((-rect.top) / travel, 0, 1);
 
-      // Long side-to-side first; then settle under point 02 with ↓.
+      // Sweep under the copy (never through it), then settle under point 02 with ↓.
       const introEnd = 0.06;
-      const acrossEnd = 0.72;
+      const acrossEnd = 0.78;
       const across = progress <= introEnd
         ? 0
         : easeInOut(clamp((progress - introEnd) / (acrossEnd - introEnd), 0, 1));
@@ -499,35 +499,31 @@
       const size = bead.offsetWidth || 54;
       const stacked = window.matchMedia('(max-width: 650px)').matches ||
         (cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left < 40);
-      const cardRects = cards.map(card => card.getBoundingClientRect());
 
-      // Explicit horizontal waypoints through each column (or top→bottom when stacked).
+      // Anchor Y to the bottom of each card's body text so the bead stays clear of copy.
+      const underOf = (card) => {
+        const body = card.querySelector('.pt-body') || card.querySelector('.pt-text') || card;
+        const r = body.getBoundingClientRect();
+        return {
+          x: r.left - stageRect.left + r.width * 0.5,
+          y: r.bottom - stageRect.top + size * 0.95
+        };
+      };
+      const unders = cards.map(underOf);
+
       const points = [];
       if (stacked) {
         points.push({
-          x: cardRects[0].left - stageRect.left + cardRects[0].width * 0.42,
-          y: cardRects[0].top - stageRect.top - size * 1.2
+          x: unders[0].x,
+          y: unders[0].y - size * 2.2
         });
-        for (const r of cardRects) {
-          points.push({
-            x: r.left - stageRect.left + r.width * 0.42,
-            y: r.top - stageRect.top + Math.min(r.height * 0.42, 64)
-          });
-        }
+        points.push(...unders);
       } else {
-        const midY = cardRects[0].top - stageRect.top + Math.min(cardRects[0].height * 0.5, 70);
-        // Start just left of column 01 copy.
         points.push({
-          x: cardRects[0].left - stageRect.left + Math.min(36, cardRects[0].width * 0.08),
-          y: midY
+          x: unders[0].x - Math.min(48, cards[0].getBoundingClientRect().width * 0.2),
+          y: unders[0].y
         });
-        // Center of each column — this is the side-to-side path.
-        for (const r of cardRects) {
-          points.push({
-            x: r.left - stageRect.left + r.width * 0.5,
-            y: r.top - stageRect.top + Math.min(r.height * 0.5, 70)
-          });
-        }
+        points.push(...unders);
       }
 
       const span = Math.max(1, points.length - 1);
@@ -539,11 +535,11 @@
       let x = a.x + (b.x - a.x) * f;
       let y = a.y + (b.y - a.y) * f;
 
-      // Finish centered under point 02 text, with ↓ cue — no particle wake on the copy.
+      // Finish centered under point 02.
       if (down > 0) {
-        const mid = cardRects[1] || cardRects[0];
-        const targetX = mid.left - stageRect.left + mid.width * 0.5;
-        const targetY = mid.bottom - stageRect.top + size * 0.35;
+        const mid = unders[1] || unders[0];
+        const targetX = mid.x;
+        const targetY = mid.y + size * 0.25;
         x = x + (targetX - x) * down;
         y = y + (targetY - y) * down;
       }
@@ -553,8 +549,8 @@
       bead.classList.toggle('bead-entry--in', inView && progress >= 0 && progress < 1.05);
       bead.classList.toggle('metal-bead--waiting', inView && across < 0.01 && down < 0.01);
       bead.classList.toggle('metal-bead--down', down > 0.12);
-      // Keep wake on during the sweep; turn it off while settling under point 02.
-      bead.dataset.repulse = across > 0.02 && down < 0.2 ? '1' : '0';
+      // Path stays under the text — no particle wake on the copy.
+      bead.dataset.repulse = '0';
     };
 
     const onScroll = () => {
