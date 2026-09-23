@@ -540,11 +540,13 @@
       let x = a.x + (b.x - a.x) * f;
       let y = a.y + (b.y - a.y) * f;
 
-      // Drop toward the bottom of the sticky panel to cue the calendar below.
+      // Finish centered under point 02, arrow pointing down to the calendar.
       if (down > 0) {
-        const targetY = stickyRect.bottom - stageRect.top - size * 1.6;
-        y = y + (Math.max(y + 48, targetY) - y) * down;
-        x = points[points.length - 1].x;
+        const mid = cardRects[1] || cardRects[0];
+        const targetX = mid.left - stageRect.left + mid.width * 0.5;
+        const targetY = mid.bottom - stageRect.top + size * 0.85;
+        x = x + (targetX - x) * down;
+        y = y + (targetY - y) * down;
       }
 
       bead.style.transform = `translate3d(${x - size / 2}px, ${y - size / 2}px, 0)`;
