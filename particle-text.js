@@ -484,10 +484,9 @@
       const travel = Math.max(1, runway.offsetHeight - window.innerHeight);
       const progress = clamp((-rect.top) / travel, 0, 1);
 
-      // Long side-to-side first; short downward point at the end.
-      const introEnd = 0.08;
-      const acrossEnd = 0.88;
-      const intro = clamp(progress / introEnd, 0, 1);
+      // Long side-to-side first; then settle under point 02 with ↓.
+      const introEnd = 0.06;
+      const acrossEnd = 0.72;
       const across = progress <= introEnd
         ? 0
         : easeInOut(clamp((progress - introEnd) / (acrossEnd - introEnd), 0, 1));
@@ -540,11 +539,11 @@
       let x = a.x + (b.x - a.x) * f;
       let y = a.y + (b.y - a.y) * f;
 
-      // Finish centered under point 02, arrow pointing down to the calendar.
+      // Finish centered under point 02 text, with ↓ cue — no particle wake on the copy.
       if (down > 0) {
         const mid = cardRects[1] || cardRects[0];
         const targetX = mid.left - stageRect.left + mid.width * 0.5;
-        const targetY = mid.bottom - stageRect.top + size * 0.85;
+        const targetY = mid.bottom - stageRect.top + size * 0.35;
         x = x + (targetX - x) * down;
         y = y + (targetY - y) * down;
       }
@@ -553,8 +552,9 @@
       const inView = stickyRect.bottom > 60 && stickyRect.top < window.innerHeight - 40;
       bead.classList.toggle('bead-entry--in', inView && progress >= 0 && progress < 1.05);
       bead.classList.toggle('metal-bead--waiting', inView && across < 0.01 && down < 0.01);
-      bead.classList.toggle('metal-bead--down', down > 0.15);
-      bead.dataset.repulse = across > 0.02 || down > 0 ? '1' : '0';
+      bead.classList.toggle('metal-bead--down', down > 0.12);
+      // Keep wake on during the sweep; turn it off while settling under point 02.
+      bead.dataset.repulse = across > 0.02 && down < 0.2 ? '1' : '0';
     };
 
     const onScroll = () => {
