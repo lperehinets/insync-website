@@ -1,4 +1,4 @@
-/* INSYNC jelly: the original brand silhouette, extruded and shaded in WebGL.
+/* INSYNC jelly: the original brand silhouette, extruded and chrome-shaded in WebGL.
    Interaction adapted from the user's tibetyakut.xyz jelly star. No dependencies. */
 (() => {
     'use strict';
@@ -47,16 +47,36 @@
         return 1.-smoothstep(-blur,blur,max(d.x,d.y));
     }
     vec3 environment(vec3 d){
-        // Broad studio lights keep reflections soft as the jelly deforms.
-        float key=pow(max(dot(d,normalize(vec3(-.55,.85,1.))),0.),6.);
-        float fill=pow(max(dot(d,normalize(vec3(.9,.1,.65))),0.),10.);
-        float rim=pow(max(dot(d,normalize(vec3(-.7,-.45,.5))),0.),8.);
-        return vec3(.025)+vec3(.94,.97,1.)*(key*1.8+fill*.75+rim*.5);
+        // Dark liquid chrome for light paper: deep troughs, hard white ridges.
+        float cam=pow(max(d.z,0.),1.35);
+        float up=smoothstep(-.25,.85,d.y);
+        float down=smoothstep(.05,-.85,d.y);
+        float soft=pow(max(dot(d,normalize(vec3(-.3,.88,.5))),0.),14.);
+        float key=pow(max(dot(d,normalize(vec3(-.55,.8,.9))),0.),60.);
+        float hot=pow(max(dot(d,normalize(vec3(.7,.45,.7))),0.),140.);
+        float hot2=pow(max(dot(d,normalize(vec3(-.1,.15,1.))),0.),100.);
+        float rim=pow(max(dot(d,normalize(vec3(-.92,-.2,.4))),0.),26.);
+        float floorL=pow(max(dot(d,normalize(vec3(.05,-.98,.2))),0.),9.);
+        float band=exp(-abs(d.y-.02)*16.)*smoothstep(0.,1.,length(d.xz));
+        vec3 black=vec3(.015);
+        vec3 gunmetal=vec3(.12,.13,.15);
+        vec3 steel=vec3(.38,.4,.44);
+        vec3 silver=vec3(.82,.84,.88);
+        vec3 white=vec3(1.08);
+        vec3 env=mix(black,gunmetal,up*.5+cam*.25);
+        env=mix(env,black,down*.9);
+        env+=steel*(soft*.45+cam*.2);
+        env+=white*(key*3.1+hot*2.6+hot2*1.7+rim*1.05);
+        env+=silver*band*1.25;
+        env+=vec3(.1,.11,.12)*floorL;
+        return env;
     }
-    vec3 film(vec3 c){return clamp((c*(2.51*c+.03))/(c*(2.43*c+.59)+.14),0.,1.);}
+    vec3 film(vec3 c){
+        c*=1.18;
+        return clamp((c*(2.2*c+.03))/(c*(2.1*c+.52)+.11),0.,1.15);
+    }
     void main(){
         vec2 uv=(gl_FragCoord.xy-center)/pixels;
-        // Expensive shading is confined to the moving body's bounding square.
         if(max(abs(uv.x),abs(uv.y))>1.9){gl_FragColor=vec4(0.);return;}
         vec3 ro=vec3(uv,4.5),rd=vec3(0.,0.,-1.);
         float t=2.6; bool hit=false;
@@ -67,14 +87,23 @@
         vec3 col=vec3(0.);
         if(hit){
             vec3 p=ro+rd*t,n=normalAt(p);
-            float fres=.08+.92*pow(1.-max(dot(-rd,n),0.),4.);
-            vec3 light=normalize(vec3(-.6,.9,1.4));
-            float diffuse=max(dot(n,light),0.);
+            float ndv=max(dot(-rd,n),0.);
+            float fres=.22+.78*pow(1.-ndv,2.4);
+            vec3 light=normalize(vec3(-.5,1.,1.2));
+            vec3 light2=normalize(vec3(.85,.35,1.05));
+            vec3 light3=normalize(vec3(-.15,.1,1.));
             vec3 reflection=environment(reflect(rd,n));
-            float gloss=pow(max(dot(reflect(-light,n),-rd),0.),22.);
-            col=vec3(.016,.019,.023)*(0.7+diffuse*.5);
-            col+=reflection*(.13+fres*.24)+gloss*.12;
-            col=pow(film(col),vec3(1./2.2));
+            float gloss=pow(max(dot(reflect(-light,n),-rd),0.),48.);
+            float gloss2=pow(max(dot(reflect(-light2,n),-rd),0.),110.);
+            float gloss3=pow(max(dot(reflect(-light3,n),-rd),0.),70.);
+            // Dark chrome body + razor highlights (LUNCH-style contrast on paper).
+            col=reflection*(.55+fres*.6);
+            col+=vec3(1.08)*gloss*1.7;
+            col+=vec3(.96,.98,1.)*gloss2*1.15;
+            col+=vec3(.9,.93,1.)*gloss3*.75;
+            col*=mix(vec3(.78,.8,.84),vec3(1.05),fres);
+            col+=vec3(.28)*pow(1.-ndv,2.8)*fres;
+            col=pow(clamp(film(col),0.,1.),vec3(1./2.2));
         }
         gl_FragColor=vec4(col,hit?1.:0.);
     }`;
