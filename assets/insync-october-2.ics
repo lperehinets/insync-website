@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//INSYNC Running Club//Events//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:insync-20261002-5k-afters-layers@insyncrunning
+DTSTAMP:20260930T220000Z
+DTSTART:20261002T230000Z
+SUMMARY:INSYNC × Layers — 5K & DJ Afters
+LOCATION:Layers Superfood Bar\, 2436 Channing Way\, Berkeley\, CA 94704
+DESCRIPTION:All paces welcome. INSYNC × Layers Superfood Bar. 3 miles / 5K\, then DJ afters.\nDetails: https://partiful.com/e/KIWhcW2sNzImpX4tsrRf
+URL:https://partiful.com/e/KIWhcW2sNzImpX4tsrRf
+END:VEVENT
+END:VCALENDAR
